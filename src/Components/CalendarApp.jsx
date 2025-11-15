@@ -27,6 +27,7 @@ const CalendarApp = () => {
   const [events, setEvents] = useState([]);
   const [eventTime, setEventTime] = useState({ hours: "00", minutes: "00" });
   const [eventText, setEventText] = useState("");
+  const [editingEvent, setEditingEvent] = useState(null);
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
 
@@ -61,6 +62,7 @@ const CalendarApp = () => {
       setShowEventPopup(true);
       setEventTime({ hours: "00", minutes: "00" });
       setEventText("");
+      setEditingEvent(null);
     }
   };
 
@@ -70,6 +72,7 @@ const CalendarApp = () => {
 
   const handleAddEvent = () => {
     const newEvent = {
+      id: editingEvent ? editingEvent.id : Date.now(),
       date: selectedDate,
       time: `${eventTime.hours.padStart(2, "0")}:${eventTime.minutes.padStart(
         2,
@@ -78,15 +81,40 @@ const CalendarApp = () => {
       text: eventText,
     };
 
-    setEvents([...events, newEvent]);
+    let updatedEvents = [...events];
+
+    if (editingEvent) {
+      updatedEvents = updatedEvents.map((event) =>
+        event.id === editingEvent.id ? newEvent : event
+      );
+    } else {
+      updatedEvents.push(newEvent);
+    }
+
+    updatedEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    newEvent.text.length !== 0 && setEvents(updatedEvents);
     setEventTime({ hours: "00", minutes: "00" });
     setEventText("");
     toggleEventPopup();
+    setEditingEvent(null);
   };
 
-  useEffect(() => {
-    console.log(events);
-  }, [events]);
+  const handleEditEvent = (event) => {
+    setSelectedDate(new Date(event.date));
+    setEventTime({
+      hours: event.time.split(":")[0],
+      minutes: event.time.split(":")[1],
+    });
+    setEventText(event.text);
+    setEditingEvent(event);
+    setShowEventPopup(true);
+  };
+
+  const handleDeleteEvent = (eventId) => {
+    const updatedEvents = events.filter((event) => event.id != eventId);
+    setEvents(updatedEvents);
+  };
   return (
     <div className="calendar-app">
       <div className="calendar">
@@ -166,7 +194,7 @@ const CalendarApp = () => {
               }}
             ></textarea>
             <button className="event-popup-btn" onClick={handleAddEvent}>
-              Add Event
+              {editingEvent ? "Update Event" : "Add Event"}
             </button>
             <button className="close-event-popup" onClick={toggleEventPopup}>
               <i className="bx bx-x"></i>
@@ -183,8 +211,14 @@ const CalendarApp = () => {
             </div>
             <div className="event-text">{event.text}</div>
             <div className="event-buttons">
-              <i className="bx bxs-edit-alt"></i>
-              <i className="bx bxs-message-alt-x"></i>
+              <i
+                className="bx bxs-edit-alt"
+                onClick={() => handleEditEvent(event)}
+              ></i>
+              <i
+                className="bx bxs-message-alt-x"
+                onClick={() => handleDeleteEvent(event.id)}
+              ></i>
             </div>
           </div>
         ))}
